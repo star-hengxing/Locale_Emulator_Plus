@@ -1,0 +1,8 @@
+.vs/
+.vscode/
+.xmake/
+.cache/
+vsxmake*/
+
+# build
+build/
