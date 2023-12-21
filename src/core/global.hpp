@@ -14,6 +14,8 @@ struct locale_info
     UINT code_page;
 };
 
+constexpr auto GLOBAL_PIPENAME = R"(\\.\pipe\Locale Emulator Plus)";
+
 inline locale_info global_info;
 
 void initialize() noexcept;

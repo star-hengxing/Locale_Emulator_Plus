@@ -37,3 +37,4 @@ xmake test
 - [Locale-Emulator-Core](https://github.com/xupefei/Locale-Emulator-Core)
 - [Locale_Remulator](https://github.com/InWILL/Locale_Remulator)
 - [hook_finale](https://github.com/rumia-san/hook_finale)
+- [Textractor](https://github.com/Artikash/Textractor)
