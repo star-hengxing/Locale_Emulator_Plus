@@ -7,7 +7,26 @@
 
 #include <base/basic_type.hpp>
 
-auto constexpr DLL_NAME = "locale_emulator_plus32.dll";
+consteval auto get_dll_name() noexcept
+{
+    if constexpr (sizeof(void*) == 8)
+    {
+        return "locale_emulator_plus64.dll";
+    }
+    else if constexpr (sizeof(void*) == 4)
+    {
+        return "locale_emulator_plus32.dll";
+    }
+}
+
+constexpr auto DLL_NAME
+{
+#ifndef LOCALE_EMULATOR_PLUS_DLL_NAME
+    get_dll_name()
+#else
+    LOCALE_EMULATOR_PLUS_DLL_NAME
+#endif
+};
 
 struct fixed_buffer
 {
