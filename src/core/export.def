@@ -1,0 +1,4 @@
+LIBRARY locale_emulator_plus
+
+EXPORTS
+    DetourFinishHelperProcess @1 NONAME

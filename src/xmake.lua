@@ -9,18 +9,24 @@ end
 
 target("locale_emulator_plus")
     set_kind("shared")
+    -- https://github.com/microsoft/Detours/wiki/DetourFinishHelperProcess
+    add_files("core/export.def")
+
     add_files("core/*.cpp")
     add_headerfiles("core/*.hpp")
-    -- https://github.com/microsoft/Detours/wiki/DetourFinishHelperProcess
-    add_shflags("/export:DetourFinishHelperProcess,@1,NONAME")
+
+    if is_plat("mingw") then
+        set_prefixname("")
+        add_cxxflags("-fpermissive")
+    end
 
     add_syslinks("user32")
 
     on_load(function (target)
         local arch
-        if target:is_arch("x86") then
+        if target:is_arch("x86", "i386") then
             arch = "32"
-        elseif target:is_arch("x64") then
+        elseif target:is_arch("x64", "x86_64") then
             arch = "64"
         end
 
