@@ -12,6 +12,7 @@ enum class Encoding : UINT
 struct locale_info
 {
     UINT code_page;
+    void* heap = nullptr;
 };
 
 constexpr auto GLOBAL_PIPENAME = R"(\\.\pipe\Locale Emulator Plus)";
