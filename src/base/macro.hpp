@@ -8,10 +8,12 @@
 #define NAMESPACE_END(name) }
 #endif
 
-#ifdef _MSC_VER
-#define ALWAYS_INLINE __forceinline
-#else
-#define ALWAYS_INLINE [[gnu::always_inline]]
+#ifndef ALWAYS_INLINE
+    #ifdef _MSC_VER
+        #define ALWAYS_INLINE __forceinline
+    #else
+        #define ALWAYS_INLINE [[gnu::always_inline]]
+    #endif
 #endif
 
 #ifdef PROJECT_SET_SYMBOL
@@ -28,12 +30,14 @@
         #define PROJECT_IMPORT __attribute__((visibility ("default")))
     #endif
 #else
-#define PROJECT_EXPORT
-#define PROJECT_IMPORT
+    #ifndef PROJECT_EXPORT
+        #define PROJECT_EXPORT
+    #endif
+    #ifndef PROJECT_IMPORT
+        #define PROJECT_IMPORT
+    #endif
 #endif
 
-#if defined(DEBUG) || defined(_DEBUG)
+#if !defined(PROJECT_DEBUG) || !(defined(NDEBUG)) || defined(DEBUG) || defined(_DEBUG)
 #define PROJECT_DEBUG
-#else
-#define PROJECT_RELEASE
 #endif

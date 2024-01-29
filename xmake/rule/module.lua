@@ -1,7 +1,7 @@
 rule("module.program")
     on_load(function (target)
         target:set("kind", "binary")
-        target:set("rundir", "$(projectdir)")
+        target:set("rundir", os.projectdir())
         if target:is_plat("windows") and target:get("runtimes") == "MT" then
             target:add("packages", "vc-ltl5")
         end
