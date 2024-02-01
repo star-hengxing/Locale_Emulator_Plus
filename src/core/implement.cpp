@@ -66,6 +66,11 @@ string<char> wide2char(const wchar_t* src, UINT code_page = CP_ACP) noexcept
     return {dst};
 }
 
+string<wchar_t> shiftjis2gbk(const wchar_t* const src) noexcept
+{
+    return char2wide(wide2char(src, (UINT)Encoding::gbk), (UINT)Encoding::shift_jis);
+}
+
 NAMESPACE_END()
 
 NAMESPACE_BEGIN(hook)
@@ -86,6 +91,16 @@ int WINAPI MessageBoxA(
     return ::MessageBoxW(hWnd, char2wide(lpText), char2wide(lpCaption), uType);
 }
 
+int WINAPI MessageBoxW(
+    _In_opt_ HWND hWnd,
+    _In_opt_ LPCWSTR lpText,
+    _In_opt_ LPCWSTR lpCaption,
+    _In_ UINT uType)
+{
+    auto const original = get_original_function_ptr<decltype(&::MessageBoxW)>(hook_function_help::MessageBoxW);
+    return original(hWnd, shiftjis2gbk(lpText), shiftjis2gbk(lpCaption), uType);
+}
+
 BOOL WINAPI SetWindowTextA(
     _In_ HWND hWnd,
     _In_opt_ LPCSTR lpString)
@@ -99,7 +114,7 @@ BOOL WINAPI SetWindowTextW(
     _In_opt_ LPCWSTR lpString)
 {
     auto const original = get_original_function_ptr<decltype(&::SetWindowTextW)>(hook_function_help::SetWindowTextW);
-    return original(hWnd, char2wide(wide2char(lpString, (UINT)Encoding::gbk), (UINT)Encoding::shift_jis));
+    return original(hWnd, shiftjis2gbk(lpString));
 }
 
 NAMESPACE_END(hook)

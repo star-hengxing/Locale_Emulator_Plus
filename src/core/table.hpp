@@ -22,6 +22,14 @@ MessageBoxA(
     _In_opt_ LPCSTR lpCaption,
     _In_ UINT uType);
 
+int
+WINAPI
+MessageBoxW(
+    _In_opt_ HWND hWnd,
+    _In_opt_ LPCWSTR lpText,
+    _In_opt_ LPCWSTR lpCaption,
+    _In_ UINT uType);
+
 BOOL
 WINAPI
 SetWindowTextA(
@@ -50,6 +58,7 @@ NAMESPACE_END(hook)
 enum class hook_function_help
 {
     MessageBoxA = 0,
+    MessageBoxW,
     SetWindowTextA,
     SetWindowTextW,
     MAX,
@@ -58,6 +67,7 @@ enum class hook_function_help
 inline hook_function HOOK_LIST[]
 {
     {::MessageBoxA, ::hook::MessageBoxA},
+    {::MessageBoxW, ::hook::MessageBoxW},
     {::SetWindowTextA, ::hook::SetWindowTextA},
     {::SetWindowTextW, ::hook::SetWindowTextW},
 };
