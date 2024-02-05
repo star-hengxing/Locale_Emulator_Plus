@@ -2,7 +2,7 @@ set_project("Locale Emulator Plus")
 
 set_version("0.0.1")
 
-set_xmakever("2.8.5")
+set_xmakever("2.8.6")
 
 set_allowedplats("windows", "mingw")
 set_allowedarchs("windows|x86", "windows|x64", "mingw|x86_64", "mingw|i386")
@@ -13,10 +13,9 @@ set_languages("c++20")
 set_warnings("all")
 add_rules("mode.debug", "mode.release")
 
-if is_mode("debug") then
-    set_policy("build.warning", true)
-elseif is_mode("release") then
+if is_mode("release") then
     set_optimize("smallest")
+    set_policy("build.optimization.lto", true)
 end
 
 if is_plat("windows") then
