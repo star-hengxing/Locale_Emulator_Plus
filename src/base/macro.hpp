@@ -38,6 +38,6 @@
     #endif
 #endif
 
-#if !defined(PROJECT_DEBUG) || !(defined(NDEBUG)) || defined(DEBUG) || defined(_DEBUG)
+#if !defined(PROJECT_DEBUG) && !defined(NDEBUG) && defined(DEBUG) && defined(_DEBUG)
 #define PROJECT_DEBUG
 #endif

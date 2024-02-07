@@ -88,7 +88,8 @@ int WINAPI MessageBoxA(
     _In_opt_ LPCSTR lpCaption,
     _In_ UINT uType)
 {
-    return ::MessageBoxW(hWnd, char2wide(lpText), char2wide(lpCaption), uType);
+    auto const original = get_original_function_ptr<decltype(&::MessageBoxW)>(hook_function_help::MessageBoxW);
+    return original(hWnd, char2wide(lpText), char2wide(lpCaption), uType);
 }
 
 int WINAPI MessageBoxW(
