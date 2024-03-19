@@ -1,8 +1,30 @@
--- dev
+-- global package config
 
 -- if is_mode("debug") then
 --     add_requireconfs("*", {configs = {shared = true}})
 -- end
+
+-- dev deps
+
+-- hook backend(detours/minhook)
+
+add_requires("microsoft-detours")
+
+if has_config("minhook") then
+    add_requires("minhook")
+end
+
+if is_plat("windows") and is_mode("release") then
+    add_requires("vc-ltl5")
+end
+
+-- test deps
+
+if has_config("test") then
+    add_requires("boost_ut", {optional = true})
+end
+
+-- custom package
 
 package("minhook")
     set_homepage("https://github.com/TsudaKageyu/minhook")
@@ -33,21 +55,3 @@ package("minhook")
         assert(package:has_cfuncs("MH_Initialize", {includes = "MinHook.h"}))
     end)
 package_end()
-
--- hook backend
-
-add_requires("microsoft-detours")
-
-if has_config("minhook") then
-    add_requires("minhook")
-end
-
-if is_plat("windows") and is_mode("release") then
-    add_requires("vc-ltl5")
-end
-
--- test
-
-if has_config("test") then
-    add_requires("boost_ut", {optional = true})
-end
