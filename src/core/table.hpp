@@ -64,12 +64,14 @@ enum class hook_function_help
     MAX,
 };
 
+#define HOOK_LIST_HELP(fn_name) {::fn_name, ::hook::fn_name}
+
 inline hook_function HOOK_LIST[]
 {
-    {::MessageBoxA, ::hook::MessageBoxA},
-    {::MessageBoxW, ::hook::MessageBoxW},
-    {::SetWindowTextA, ::hook::SetWindowTextA},
-    {::SetWindowTextW, ::hook::SetWindowTextW},
+    HOOK_LIST_HELP(MessageBoxA),
+    HOOK_LIST_HELP(MessageBoxW),
+    HOOK_LIST_HELP(SetWindowTextA),
+    HOOK_LIST_HELP(SetWindowTextW),
 };
 
 static_assert(static_cast<usize>(hook_function_help::MAX) == std::size(HOOK_LIST));

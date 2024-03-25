@@ -75,12 +75,27 @@ NAMESPACE_END()
 
 NAMESPACE_BEGIN(hook)
 
-template <typename T>
-auto get_original_function_ptr(hook_function_help index) noexcept
+template <hook_function_help fn_name>
+struct hook_struct_help;
+
+#define REGISTER(fn_name)                                     \
+template <>                                                   \
+struct hook_struct_help<hook_function_help::fn_name>          \
+{                                                             \
+    using fn_type = decltype(&::fn_name);                     \
+};                                                            \
+
+template <hook_function_help T>
+auto get_original_function_ptr() noexcept
 {
     // TODO: c++23 std::to_underlying
-    return reinterpret_cast<T>(HOOK_LIST[static_cast<usize>(index)].src);
+    return reinterpret_cast<hook_struct_help<T>::fn_type>(HOOK_LIST[static_cast<usize>(T)].src);
 }
+
+REGISTER(MessageBoxA)
+REGISTER(MessageBoxW)
+REGISTER(SetWindowTextA)
+REGISTER(SetWindowTextW)
 
 int WINAPI MessageBoxA(
     _In_opt_ HWND hWnd,
@@ -88,8 +103,8 @@ int WINAPI MessageBoxA(
     _In_opt_ LPCSTR lpCaption,
     _In_ UINT uType)
 {
-    auto const original = get_original_function_ptr<decltype(&::MessageBoxW)>(hook_function_help::MessageBoxW);
-    return original(hWnd, char2wide(lpText), char2wide(lpCaption), uType);
+    auto const original = get_original_function_ptr<hook_function_help::MessageBoxW>();
+    return original(hWnd, char2wide(lpText, global_info.code_page), char2wide(lpCaption, global_info.code_page), uType);
 }
 
 int WINAPI MessageBoxW(
@@ -98,7 +113,7 @@ int WINAPI MessageBoxW(
     _In_opt_ LPCWSTR lpCaption,
     _In_ UINT uType)
 {
-    auto const original = get_original_function_ptr<decltype(&::MessageBoxW)>(hook_function_help::MessageBoxW);
+    auto const original = get_original_function_ptr<hook_function_help::MessageBoxW>();
     return original(hWnd, shiftjis2gbk(lpText), shiftjis2gbk(lpCaption), uType);
 }
 
@@ -106,7 +121,7 @@ BOOL WINAPI SetWindowTextA(
     _In_ HWND hWnd,
     _In_opt_ LPCSTR lpString)
 {
-    auto const original = get_original_function_ptr<decltype(&::SetWindowTextW)>(hook_function_help::SetWindowTextW);
+    auto const original = get_original_function_ptr<hook_function_help::SetWindowTextW>();
     return original(hWnd, char2wide(lpString));
 }
 
@@ -114,7 +129,7 @@ BOOL WINAPI SetWindowTextW(
     _In_ HWND hWnd,
     _In_opt_ LPCWSTR lpString)
 {
-    auto const original = get_original_function_ptr<decltype(&::SetWindowTextW)>(hook_function_help::SetWindowTextW);
+    auto const original = get_original_function_ptr<hook_function_help::SetWindowTextW>();
     return original(hWnd, shiftjis2gbk(lpString));
 }
 
