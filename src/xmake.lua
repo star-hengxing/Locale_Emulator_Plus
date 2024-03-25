@@ -14,6 +14,7 @@ target("locale_emulator_plus")
 
     add_files("core/*.cpp")
     add_headerfiles("core/*.hpp")
+    add_cxxflags("/wd4003", "/kernel", {tools = "cl"})
 
     if is_plat("mingw") then
         set_prefixname("")

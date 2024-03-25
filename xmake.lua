@@ -2,7 +2,7 @@ set_project("Locale Emulator Plus")
 
 set_version("0.0.1")
 
-set_xmakever("2.8.6")
+set_xmakever("2.8.9")
 
 set_allowedplats("windows", "mingw")
 set_allowedarchs("windows|x86", "windows|x64", "mingw|x86_64", "mingw|i386")
@@ -19,8 +19,8 @@ if is_mode("release") then
 end
 
 if is_plat("windows") then
-    set_runtimes(is_mode("debug") and "MD" or "MT")
-    add_cxflags("/permissive-", {tools = "cl"})
+    set_runtimes("MD")
+    add_cxflags("cl::/permissive-")
 end
 
 set_encodings("source:utf-8")
