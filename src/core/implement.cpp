@@ -78,12 +78,12 @@ NAMESPACE_BEGIN(hook)
 template <hook_function_help fn_name>
 struct hook_struct_help;
 
-#define REGISTER(fn_name)                                     \
-template <>                                                   \
-struct hook_struct_help<hook_function_help::fn_name>          \
-{                                                             \
-    using fn_type = decltype(&::fn_name);                     \
-};                                                            \
+#define REGISTER(fn_name)                                \
+    template <>                                          \
+    struct hook_struct_help<hook_function_help::fn_name> \
+    {                                                    \
+        using fn_type = decltype(&::fn_name);            \
+    };
 
 template <hook_function_help T>
 auto get_original_function_ptr() noexcept
@@ -96,6 +96,8 @@ REGISTER(MessageBoxA)
 REGISTER(MessageBoxW)
 REGISTER(SetWindowTextA)
 REGISTER(SetWindowTextW)
+REGISTER(RegisterClassExA)
+REGISTER(RegisterClassExW)
 
 int WINAPI MessageBoxA(
     _In_opt_ HWND hWnd,
@@ -131,6 +133,30 @@ BOOL WINAPI SetWindowTextW(
 {
     auto const original = get_original_function_ptr<hook_function_help::SetWindowTextW>();
     return original(hWnd, shiftjis2gbk(lpString));
+}
+
+ATOM WINAPI RegisterClassExA(_In_ CONST WNDCLASSEXA* src)
+{
+    auto const original = get_original_function_ptr<hook_function_help::RegisterClassExW>();
+    auto const class_name = char2wide(src->lpszClassName);
+    auto const menu_name = char2wide(src->lpszMenuName);
+
+    auto dst = *reinterpret_cast<const WNDCLASSEXW*>(src);
+    dst.lpszClassName = class_name.ptr;
+    dst.lpszMenuName = menu_name.ptr;
+    return original(&dst);
+}
+
+ATOM WINAPI RegisterClassExW(_In_ CONST WNDCLASSEXW* src)
+{
+    auto const original = get_original_function_ptr<hook_function_help::RegisterClassExW>();
+    auto const class_name = shiftjis2gbk(src->lpszClassName);
+    auto const menu_name = shiftjis2gbk(src->lpszMenuName);
+
+    WNDCLASSEXW dst = *src;
+    dst.lpszClassName = class_name.ptr;
+    dst.lpszMenuName = menu_name.ptr;
+    return original(&dst);
 }
 
 NAMESPACE_END(hook)

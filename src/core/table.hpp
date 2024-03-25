@@ -42,6 +42,16 @@ SetWindowTextW(
     _In_ HWND hWnd,
     _In_opt_ LPCWSTR lpString);
 
+ATOM
+WINAPI
+RegisterClassExA(
+    _In_ CONST WNDCLASSEXA *);
+
+ATOM
+WINAPI
+RegisterClassExW(
+    _In_ CONST WNDCLASSEXW *);
+
 int
 WINAPI
 MultiByteToWideChar(
@@ -61,6 +71,8 @@ enum class hook_function_help
     MessageBoxW,
     SetWindowTextA,
     SetWindowTextW,
+    RegisterClassExA,
+    RegisterClassExW,
     MAX,
 };
 
@@ -72,6 +84,8 @@ inline hook_function HOOK_LIST[]
     HOOK_LIST_HELP(MessageBoxW),
     HOOK_LIST_HELP(SetWindowTextA),
     HOOK_LIST_HELP(SetWindowTextW),
+    HOOK_LIST_HELP(RegisterClassExA),
+    HOOK_LIST_HELP(RegisterClassExW),
 };
 
 static_assert(static_cast<usize>(hook_function_help::MAX) == std::size(HOOK_LIST));
