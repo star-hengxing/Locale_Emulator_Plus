@@ -159,4 +159,15 @@ ATOM WINAPI RegisterClassExW(_In_ CONST WNDCLASSEXW* src)
     return original(&dst);
 }
 
+DWORD WINAPI GetModuleFileNameA(
+    _In_opt_ HMODULE hModule,
+    _Out_writes_to_(nSize, ((return < nSize) ? (return +1) : nSize)) LPSTR lpFilename,
+    _In_ DWORD nSize)
+{
+    wchar_t filename[MAX_PATH];
+    auto const ret = ::GetModuleFileNameW(hModule, filename, nSize);
+    ::WideCharToMultiByte(global_info.code_page, 0, filename, MAX_PATH, lpFilename, MAX_PATH, nullptr, nullptr);
+    return ret;
+}
+
 NAMESPACE_END(hook)

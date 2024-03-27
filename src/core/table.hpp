@@ -52,6 +52,16 @@ WINAPI
 RegisterClassExW(
     _In_ CONST WNDCLASSEXW *);
 
+_Success_(return != 0)
+_Ret_range_(1,nSize)
+DWORD
+WINAPI
+GetModuleFileNameA(
+    _In_opt_ HMODULE hModule,
+    _Out_writes_to_(nSize,((return < nSize) ? (return + 1) : nSize)) LPSTR lpFilename,
+    _In_ DWORD nSize
+    );
+
 int
 WINAPI
 MultiByteToWideChar(
@@ -73,6 +83,7 @@ enum class hook_function_help
     SetWindowTextW,
     RegisterClassExA,
     RegisterClassExW,
+    GetModuleFileNameA,
     MAX,
 };
 
@@ -86,6 +97,7 @@ inline hook_function HOOK_LIST[]
     HOOK_LIST_HELP(SetWindowTextW),
     HOOK_LIST_HELP(RegisterClassExA),
     HOOK_LIST_HELP(RegisterClassExW),
+    HOOK_LIST_HELP(GetModuleFileNameA),
 };
 
 static_assert(static_cast<usize>(hook_function_help::MAX) == std::size(HOOK_LIST));
