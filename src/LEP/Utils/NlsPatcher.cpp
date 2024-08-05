@@ -1,4 +1,4 @@
-#include "nls.h"
+#include <LEP/Utils/NlsPatcher.h>
 #include <cstdint>
 #include <array>
 
@@ -131,15 +131,26 @@ static auto NlsPatch_V1_x32(const HANDLE hProcess, const std::size_t nCodePage) 
     return true;
 }
 
-auto NlsPatcher(const NlsPatcherSysVer eSysVer, const HANDLE hProcess, const std::size_t nCodePage) -> bool
+namespace LEP::Utils
 {
-    switch (eSysVer)
+    auto NlsPatcher::Install() const -> bool
     {
-    case NlsPatcherSysVer::Nls_Windows8_x32:
-    case NlsPatcherSysVer::Nls_Windows8_1_x32:
-    case NlsPatcherSysVer::Nls_Windows10_x32:
-        return NlsPatch_V1_x32(hProcess, nCodePage);
+        switch (m_eSysVer)
+        {
+        case SysVer::Nls_Windows8_x32:
+        case SysVer::Nls_Windows8_1_x32:
+        case SysVer::Nls_Windows10_x32:
+            return NlsPatch_V1_x32(m_hProcess, m_nCodePage);
+        }
+
+        return false;
     }
 
-    return false;
+    auto NlsPatcher::Install(const HANDLE hProcess, const SysVer eSysVer, const std::size_t nCodePage) -> bool
+    {
+        NlsPatcher patcher{ hProcess,eSysVer,nCodePage };
+        return patcher.Install();
+    }
 }
+
+
