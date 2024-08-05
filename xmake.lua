@@ -10,7 +10,7 @@ set_allowedmodes("debug", "release")
 
 set_languages("c++20")
 
-set_warnings("all")
+set_warnings("allextra")
 add_rules("mode.debug", "mode.release")
 
 if is_mode("release") then

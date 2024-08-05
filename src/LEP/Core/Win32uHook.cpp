@@ -15,9 +15,9 @@ static auto __stdcall NtUserMessageCall_Hook(HWND hWnd, UINT Message, WPARAM wPa
         switch (Message)
         {
         case WM_SETTEXT:
-            Ansi = FALSE;
             buffer = LEP::Utils::MBCSToWide(reinterpret_cast<const char*>(lParam));
             lParam = reinterpret_cast<LPARAM>(buffer.get());
+            Ansi = FALSE;
             break;
         }
 
