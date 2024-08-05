@@ -26,3 +26,5 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID /* lpRes
     }
     return TRUE;
 }
+
+extern "C" VOID __declspec(dllexport) LEP_EXPORT_FUNC() {}

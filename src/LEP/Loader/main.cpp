@@ -30,7 +30,7 @@ auto wmain(int argc, wchar_t** argv) -> int
 
     LEP::Utils::NlsPatcher::Install(pi.hProcess, LEP::Utils::NlsPatcher::SysVer::Nls_Windows10_x32, 0x3A4);
 
-    // ::MessageBoxW(0, 0, 0, 0);
+    ::MessageBoxW(0, 0, 0, 0);
 
     ::ResumeThread(pi.hThread);
     ::CloseHandle(pi.hProcess);
