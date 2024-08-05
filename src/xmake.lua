@@ -38,6 +38,6 @@ target("locale_emulator_plus_tool")
     set_default(false)
     set_kind("binary")
     add_files("tool/*.cpp")
-    add_syslinks("shlwapi")
+    add_syslinks("user32")
 
     add_deps("locale_emulator_plus", {inherit = false})
