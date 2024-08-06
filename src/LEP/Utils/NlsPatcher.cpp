@@ -1,302 +1,297 @@
 #include <LEP/Utils/NlsPatcher.h>
-#include <cstdint>
+#include <LEP/Utils/VAHelper.h>
+#include <LEP/Utils/SysInfo.h>
 #include <array>
-#include <string>
-#include <optional>
+#include <cstdint>
+#include <cstdio>
 
-
-// virtual address helper
-namespace LEP::Utils::VA
-{
-    static auto Alloc(const HANDLE hProcess, const std::size_t nBytes) -> std::size_t
-    {
-        return reinterpret_cast<std::size_t>(::VirtualAllocEx(hProcess, NULL, nBytes, MEM_COMMIT, PAGE_EXECUTE_READWRITE));
-    }
-
-    static auto SetProtect(const HANDLE hProcess, const std::size_t nVA, const std::size_t nBytes, const std::size_t nProtect) -> std::size_t
-    {
-        DWORD old;
-        const auto status = ::VirtualProtectEx(hProcess, reinterpret_cast<LPVOID>(nVA), static_cast<SIZE_T>(nBytes), static_cast<DWORD>(nProtect), &old);
-        return (status != FALSE) ? static_cast<std::size_t>(old) : 0;
-    }
-
-    static auto Write(const HANDLE hProcess, const std::size_t nVA, const void* pData, const std::size_t nBytes) -> bool
-    {
-        SIZE_T written;
-        const auto status = ::WriteProcessMemory(hProcess, reinterpret_cast<LPVOID>(nVA), pData, static_cast<SIZE_T>(nBytes), &written);
-        if (!status) { return false; }
-        return written == static_cast<SIZE_T>(nBytes);
-    }
-
-    static auto WriteAsmJmp(const HANDLE hProcess, const std::size_t nSrcVA, const std::size_t nDestVA) -> bool
-    {
-        std::array<std::uint8_t, 5> jmp_instr{ 0xE9, 0x00, 0x00, 0x00, 0x00 };
-        const auto jmp_offset = reinterpret_cast<std::uint32_t*>(jmp_instr.data() + 1);
-        jmp_offset[0] = static_cast<std::uint32_t>(nDestVA - nSrcVA - 5);
-        return VA::Write(hProcess, nSrcVA, jmp_instr.data(), jmp_instr.size());
-    }
-} // namespace LEP::Utils::VA
 
 namespace LEP::Utils
 {
-    // support for windows8 8.1 10 x32
-    static auto NlsPatch_V1_x32(const HANDLE hProcess, const std::size_t nCodePage) -> std::optional<std::size_t>
-    {
-        auto [fn_NtGetNlsSectionPtr_va, fn_RtlInitNlsTables_va] = []() -> std::pair<std::size_t, std::size_t> {
-            const auto ntdll_handle = ::GetModuleHandleW(L"ntdll.dll");
-            if (ntdll_handle == NULL) { return std::pair{0, 0}; }
-            const auto fn_va_0 = reinterpret_cast<std::size_t>(::GetProcAddress(ntdll_handle, "NtGetNlsSectionPtr"));
-            const auto fn_va_1 = reinterpret_cast<std::size_t>(::GetProcAddress(ntdll_handle, "RtlInitNlsTables"));
-            return std::pair{fn_va_0, fn_va_1};
-        }();
+	// for Windows 7 8 8.1 10  x32
+	static auto ShellCodeV1_x32(uint8_t* pBuffer) -> std::size_t
+	{
+		/*
+		** _PEB* peb_ptr = __readfsdword(0x30);
+		** SIZE_T code_page_data_size;
+		** NtGetNlsSectionPtr(0xB, 0x3A4, 0, &peb_ptr->AnsiCodePageData, &code_page_data_size);
+		** peb_ptr->OemCodePageData = peb_ptr->AnsiCodePageData
+		*/
 
-        if ((fn_NtGetNlsSectionPtr_va == 0) || (fn_RtlInitNlsTables_va == 0)) { std::nullopt; }
+		std::array<std::uint8_t, 104> shell_code
+		{
+			0x60,                                     // pushad
+			0x9C,                                     // pushfd
+			0xE8,0x10,0x00,0x00,0x00,                 // call lable_0
 
-        /*
-        ** _PEB* peb_ptr = __readfsdword(0x30);
-        ** SIZE_T code_page_data_size;
-        ** NtGetNlsSectionPtr(0xB, 0x3A4, 0, &peb_ptr->AnsiCodePageData, &code_page_data_size);
-        ** peb_ptr->OemCodePageData = peb_ptr->AnsiCodePageData
-        */
+			// Data
+			0x00,0x00,0x00,0x00,                      // info_struct.CodePage
+			0x00,0x00,0x00,0x00,                      // info_struct.NtGetNlsSectionPtr
+			0x00,0x00,0x00,0x00,                      // info_struct.RtlInitCodePageTable
+			0x00,0x00,0x00,0x00,                      // info_struct.NlsMapVA
 
-        std::array<std::uint8_t, 72> shell_code
-        {
-            0x60,                                // pushad
-            0x9C,                                // pushfd
-            0x64,0x8B,0x35, 0x30,0x00,0x00,0x00, // mov esi,dword ptr fs:[30]          // _PEB* peb_ptr = __readfsdword(0x30);
-            0x8D,0x4E,0x58,                      // lea ecx,dword ptr ds:[esi+58]      // 
-            0x8D,0x56,0x5C,                      // lea edx,dword ptr ds:[esi+5C]      // 
-            0x51,                                // push ecx                           // 
-            0x52,                                // push edx                           // 
-            0x6A,00,                             // push 0                             // SIZE_T code_page_data_size;
-            0x8D,0x04,0x24,                      // lea eax,dword ptr ss:[esp]         // NtGetNlsSectionPtr(0xB, 0x3A4, 0, &peb_ptr->AnsiCodePageData, &code_page_data_size);
-            0x50,                                // push eax                           // 
-            0x51,                                // push ecx                           // 
-            0x6A,0x00,                           // push 0x0                           // 
-            0x68, 0x00,0x00,0x00,0x00,           // push {CodePage}                    // 
-            0x6A, 0x0B,                          // push 0xB                           // 
-            0xE8, 0x00,0x00,0x00,0x00,           // call ntdll.NtGetNlsSectionPtr      // 
-            0x58,                                // pop eax                            
-            0x5A,                                // pop edx                            
-            0x59,                                // pop ecx                            
-            0x8B,0x01,                           // mov eax, dword ptr ds:[ecx]        // peb_ptr->OemCodePageData = peb_ptr->AnsiCodePageData
-            0x89,0x02,                           // mov dword ptr ds:[edx], eax        // 
-            0xB8,0x00,0x00,0x00,0x00,            // mov eax,{NtRtlInitNlsTables}       // recover NtRtlInitNlsTables
-            0xC7,0x00,0x8B,0xFF,0x55,0x8B,       // mov dword ptr ds:[eax], 0x8B55FF8B //
-            0xC6,0x40,0x04,0xEC,                 // mov byte ptr ds:[eax+0x4], 0xEC    //
-            0x8B,0x02,                           // mov eax, dword ptr ds:[edx]        //
-            0x89,0x44,0x24,0x28,                 // mov dword ptr ss:[esp+0x28], eax   // change RtlInitNlsTables param_0
-            0x89,0x44,0x24,0x2C,                 // mov dword ptr ss:[esp+0x2C], eax   // change RtlInitNlsTables param_1
-            0x9D,                                // popfd
-            0x61                                 // popad
-        };
+			// lable_0: test info_struct.NlsMapVA
+			0x58,                                     // pop eax
+			0x31,0xDB,                                // xor ebx,ebx
+			0x8B,0x48,0x0C,							  // mov ecx,dword ptr ds:[eax+C]   // info_struct.NlsMapVA
+			0x39,0xCB,								  // cmp ebx,ecx
+			0x75,0x2F,								  // jne label_1
 
-        // alloc shellcode memory in target process
-        const auto shell_code_mem_va = VA::Alloc(hProcess, 1024);
-        if (shell_code_mem_va == 0) { return std::nullopt; }
+			0x50,									  // push eax                        // Save info_struct ptr
+			0x8B,0x18,								  // mov ebx,dword ptr ds:[eax]      // load info_struct.CodePage
 
-        // config shellcode
-        {
-            const auto shellcode_codepage_ptr = reinterpret_cast<std::uint32_t*>(shell_code.data() + 27);
-            shellcode_codepage_ptr[0] = static_cast<const std::uint32_t>(nCodePage);
+			// load nls map table														 //
+			0x6A,0x00,								  // push 0							 //
+			0x6A,0x00,								  // push 0							 //
+			0x8D,0x0C,0x24,							  // lea ecx,dword ptr ss:[esp]		 //
+			0x8D,0x54,0x24,0x04,					  // lea edx,dword ptr ss:[esp+4]	 //
+			0x51,									  // push ecx						 // param_4: SectionSizePtr :
+			0x52,									  // push edx						 // param_3: SectionPtrPtr  :
+			0x6A,0x00,								  // push 0							 // param_2: Unknown        :
+			0x53,									  // push ebx						 // param_1: CodePage       :
+			0x6A,0x0B,								  // push B							 // param_0: NlsType        :
+			0xFF,0x50,0x04,							  // call dword ptr ds:[eax+4]       // call info_struct.NtGetNlsSectionPtr
+			0x5B,									  // pop ebx						 //
+			0x59,									  // pop ecx						 //
+			0x58,									  // pop eax						 // Restore info_struct ptr
 
-            const auto shellcode_call_NtGetNlsSectionPtr_ptr = reinterpret_cast<std::uint32_t*>(shell_code.data() + 34);
-            shellcode_call_NtGetNlsSectionPtr_ptr[0] = static_cast<const std::uint32_t>(fn_NtGetNlsSectionPtr_va - (shell_code_mem_va + 33) - 5);
+			// patch PEB
+			0x64,0x8B,0x35,0x30,0x00,0x00,0x00,		  // mov esi,dword ptr fs:[30]       // PEB
+			0x8D,0x56,0x58,							  // lea edx,dword ptr ds:[esi+58]   // &PEB.AnsiCodePageData
+			0x89,0x0A,								  // mov dword ptr ds:[edx],ecx      // PEB.AnsiCodePageData = nls_table_ptr
+			0x89,0x4A,0x04,						      // mov dword ptr ds:[edx+4],ecx    // PEB.OemCodePageData = nls_table_ptr
+			0x89,0x48,0x0C,							  // mov dword ptr ds:[eax+C],ecx    // info_struct.NlsMapVA = nls_table_ptr
+			0xEB,0x0D,								  // jmp label_2
 
-            const auto shellcode_NtRtlInitNlsTables_ptr = reinterpret_cast<std::uint32_t*>(shell_code.data() + 46);
-            shellcode_NtRtlInitNlsTables_ptr[0] = static_cast<const std::uint32_t>(fn_RtlInitNlsTables_va);
-        }
+			// label_1: restore RtlInitCodePageTable header
+			0x8B,0x58,0x08,							  // mov ebx,dword ptr ds:[eax+8]    // info_struct.RtlInitCodePageTable
+			0xC7,0x03,0x8B,0xFF,0x55,0x8B,			  // mov dword ptr ds:[ebx],8B55FF8B // copy { {mov edi, edi}, {push ebp}, {mov ebp, esp} }
+			0xC6,0x43,0x04,0xEC,					  // mov byte ptr ds:[ebx+4],EC      // 
 
-        // write shellcode
-        {
-            // write shellcode to shell_code_mem
-            const auto shellcode_write_status = VA::Write(hProcess, shell_code_mem_va, shell_code.data(), shell_code.size());
-            if (shellcode_write_status == false) { return std::nullopt; }
+			// label_2: modify RtlInitCodePageTable param0
+			0x89,0x4C,0x24,0x28,					  // mov dword ptr ss:[esp+28],ecx
+			0x9D,                                     // popfd
+			0x61,                                     // popad
+			0x8B, 0xFF,                               // mov edi, edi
+			0x55,                                     // push ebp
+			0x8B, 0xEC                                // mov ebp, esp
+		};
 
-            // modify RtlInitNlsTables va protection properties
-            const auto old_protection = VA::SetProtect(hProcess, fn_RtlInitNlsTables_va, 5, PAGE_EXECUTE_READWRITE);
-            if (old_protection == 0) { return std::nullopt; }
+		std::memcpy(pBuffer, shell_code.data(), shell_code.size());
+		return shell_code.size();
+	}
 
-            // write jmp instr at the begin of NtRtlInitNlsTables
-            const auto jmp_instr_write_status = VA::WriteAsmJmp(hProcess, fn_RtlInitNlsTables_va, shell_code_mem_va);
-            if (jmp_instr_write_status == false) { return std::nullopt; }
+	// for Windows 11  x32
+	static auto ShellCodeV2_x32(uint8_t* pBuffer) -> std::size_t
+	{
+		/*
+		*  PEB* peb_ptr = __readfsdword(0x30);
+		*  peb_ptr->ActiveCodePage = 0x3A4;
+		*  peb_ptr->OemCodePage = 0x3A4;
+		*  SIZE_T code_page_table_ptr;
+		*  SIZE_T code_page_table_size;
+		*  NtGetNlsSectionPtr(0xB, 0x3A4, 0, &code_page_table_ptr, &code_page_table_size);
+		*  RtlInitCodePageTable(code_page_table_ptr, &GlobalRtlNlsState);
+		*/
+		std::array<std::uint8_t, 110> shell_code{
+			0x60,                                     // pushad
+			0x9C,                                     // pushfd
+			0xE8,0x10,0x00,0x00,0x00,                 // call lable_0
 
-            // write jmp instr at the end of shell_code_mem that jmp back begin of NtRtlInitNlsTables
-            const auto jmp_back_instr_write_status = VA::WriteAsmJmp(hProcess, shell_code_mem_va + shell_code.size(), fn_RtlInitNlsTables_va);
-            if (jmp_back_instr_write_status == false) { return std::nullopt; }
+			// Data
+			0x00,0x00,0x00,0x00,                      // info_struct.CodePage
+			0x00,0x00,0x00,0x00,                      // info_struct.NtGetNlsSectionPtr
+			0x00,0x00,0x00,0x00,                      // info_struct.RtlInitCodePageTable
+			0x00,0x00,0x00,0x00,                      // info_struct.NlsMapVA
 
-            return old_protection;
-        }
-    }
+			// lable_0: test info_struct.NlsMapVA
+			0x58,                                     // pop eax
+			0x31,0xDB,                                // xor ebx,ebx
+			0x8B,0x48,0x0C,							  // mov ecx,dword ptr ds:[eax+C]   // info_struct.NlsMapVA
+			0x39,0xCB,								  // cmp ebx,ecx
+			0x75,0x35,								  // jne label_1
 
-    static auto NlsPatch_V2_x32(const HANDLE hProcess, const std::size_t nCodePage) -> std::optional<std::size_t>
-    {
-        // find NtGetNlsSectionPtr and RtlInitNlsTables virtual address
-        auto [fn_NtGetNlsSectionPtr_va, fn_RtlInitCodePageTable_va] = []() -> std::pair<std::size_t, std::size_t> {
-            const auto ntdll_handle = ::GetModuleHandleW(L"ntdll.dll");
-            if (ntdll_handle == NULL) { return std::pair{0, 0}; }
-            const auto fn_va_0 = reinterpret_cast<std::size_t>(::GetProcAddress(ntdll_handle, "NtGetNlsSectionPtr"));
-            const auto fn_va_1 = reinterpret_cast<std::size_t>(::GetProcAddress(ntdll_handle, "RtlInitCodePageTable"));
-            return std::pair{fn_va_0, fn_va_1};
-        }();
+			// patch PEB
+			0x50,									  // push eax                        // Save info_struct ptr
+			0x8B,0x18,								  // mov ebx,dword ptr ds:[eax]      // info_struct.CodePage
+			0x64,0x8B,0x15,0x30,0x00,0x00,0x00,		  // mov edx,dword ptr fs:[30]       // Get PEB
+			0x66,0x89,0x9A,0x28,0x02,0x00,0x00,		  // mov word ptr ds:[edx+228],bx    // PEB.ActiveCodePage
+			0x66,0x89,0x9A,0x2A,0x02,0x00,0x00,		  // mov word ptr ds:[edx+22A],bx    // PEB.OemCodePage
 
-        if ((fn_NtGetNlsSectionPtr_va == 0) || (fn_RtlInitCodePageTable_va == 0)) { std::nullopt; }
-        /*
-        ** _PEB* peb_ptr = __readfsdword(0x30);
-        ** SIZE_T code_page_data_size;
-        ** NtGetNlsSectionPtr(0xB, 0x3A4, 0, &peb_ptr->AnsiCodePageData, &code_page_data_size);
-        ** peb_ptr->OemCodePageData = peb_ptr->AnsiCodePageData
-        */
+			// load nls map table														 //
+			0x6A,0x00,								  // push 0							 //
+			0x6A,0x00,								  // push 0							 //
+			0x8D,0x0C,0x24,							  // lea ecx,dword ptr ss:[esp]		 //
+			0x8D,0x54,0x24,0x04,					  // lea edx,dword ptr ss:[esp+4]	 //
+			0x51,									  // push ecx						 // param_4: SectionSizePtr :
+			0x52,									  // push edx						 // param_3: SectionPtrPtr  :
+			0x6A,0x00,								  // push 0							 // param_2: Unknown        :
+			0x53,									  // push ebx						 // param_1: CodePage       :
+			0x6A,0x0B,								  // push B							 // param_0: NlsType        :
+			0xFF,0x50,0x04,							  // call dword ptr ds:[eax+4]       // call info_struct.NtGetNlsSectionPtr
+			0x5B,									  // pop ebx						 //
+			0x59,									  // pop ecx						 //
+			0x58,									  // pop eax						 // Restore info_struct ptr
+			0x89,0x48,0x0C,							  // mov dword ptr ds:[eax+C],ecx	 //
+			0xEB,0x0D,								  // jmp label_2					 //
 
-        std::array<std::uint8_t, 94> shell_code
-        {
-            0x60,                                     // pushad
-            0x9C,                                     // pushfd
-            0xB8, 0x00,0x00,0x00,0x00,                // mov eax, { CodePage }
-            0xBB, 0x00,0x00,0x00,0x00,                // mov ebx, { ntdll.NtGetNlsSectionPtr }
-            0xB9, 0x00,0x00,0x00,0x00,                // mov ecx, { ntdll.RtlInitCodePageTable }
-            0x64, 0x8B, 0x15, 0x30,0x00,0x00,0x00,    // mov edx,dword ptr fs:[30]
-            0x0F, 0xB7, 0xB2, 0x28,0x02,0x00,0x00,    // movzx esi,word ptr ds:[edx+228] 
-            0x39, 0xC6,                               // cmp esi,eax
-            0x75, 0x0A,                               // jne 
-            0xC7, 0x01, 0x8B,0xFF,0x55,0x8B,          // mov dword ptr ds:[ecx],8B55FF8B
-            0xC6, 0x41, 0x04, 0xEC,                   // mov byte ptr ds:[ecx+4],EC
-            0x66, 0x89, 0x82, 0x28,0x02,0x00,0x00,    // mov word ptr ds:[edx+228],ax
-            0x66, 0x89, 0x82, 0x2A,0x02,0x00,0x00,    // mov word ptr ds:[edx+22A],ax
-            0x53,                                     // push ebx
-            0x6A, 0x00,                               // push 0
-            0x6A, 0x00,                               // push 0
-            0x8D, 0x14, 0x24,                         // lea edx,dword ptr ss:[esp]
-            0x52,                                     // push edx
-            0x8D, 0x54, 0x24, 0x08,                   // lea edx,dword ptr ss:[esp+8]
-            0x52,                                     // push edx
-            0x6A, 0x00,                               // push 0
-            0x50,                                     // push eax
-            0x6A, 0x0B,                               // push B
-            0xFF, 0xD3,                               // call ebx
-            0x58,                                     // pop eax
-            0x5B,                                     // pop ebx
-            0x59,                                     // pop ecx
-            0x89, 0x5C, 0x24, 0x28,                   // mov dword ptr ss:[esp+28],ebx
-            0x9D,                                     // popfd
-            0x61,                                     // popad
-            0x8B, 0xFF,                               // mov edi, edi
-            0x55,                                     // push ebp
-            0x8B, 0xEC                                // mov ebp, esp
-        };
+			// label_1: restore RtlInitCodePageTable header								 //
+			0x8B,0x58,0x08,							  // mov ebx,dword ptr ds:[eax+8]    // info_struct.RtlInitCodePageTable
+			0xC7,0x03,0x8B,0xFF,0x55,0x8B,			  // mov dword ptr ds:[ebx],8B55FF8B // copy { {mov edi, edi}, {push ebp}, {mov ebp, esp} }
+			0xC6,0x43,0x04,0xEC,					  // mov byte ptr ds:[ebx+4],EC      // 
 
-        // alloc shellcode memory in target process
-        const auto shell_code_mem_va = VA::Alloc(hProcess, 1024);
-        if (shell_code_mem_va == 0) { return std::nullopt; }
+			// label_2: modify RtlInitCodePageTable param0
+			0x89,0x4C,0x24,0x28,					  // mov dword ptr ss:[esp+28],ecx
+			0x9D,                                     // popfd
+			0x61,                                     // popad
+			0x8B, 0xFF,                               // mov edi, edi
+			0x55,                                     // push ebp
+			0x8B, 0xEC                                // mov ebp, esp
+		};
 
-        // config shellcode
-        {
-            const auto shellcode_codepage_ptr = reinterpret_cast<std::uint32_t*>(shell_code.data() + 3);
-            shellcode_codepage_ptr[0] = static_cast<const std::uint32_t>(nCodePage);
+		std::memcpy(pBuffer, shell_code.data(), shell_code.size());
+		return shell_code.size();
+	}
 
-            const auto shellcode_call_NtGetNlsSectionPtr_ptr = reinterpret_cast<std::uint32_t*>(shell_code.data() + 8);
-            shellcode_call_NtGetNlsSectionPtr_ptr[0] = static_cast<const std::uint32_t>(fn_NtGetNlsSectionPtr_va);
+	static auto CodePageTablePatch_x32(const HANDLE hProcess, const std::size_t nCodePage, const bool isWin11) -> bool
+	{
+		const auto ntdll_handle = ::GetModuleHandleW(L"ntdll.dll");
+		if (ntdll_handle == NULL) { return false; }
+		const auto fn_NtGetNlsSectionPtr_va = reinterpret_cast<std::size_t>(::GetProcAddress(ntdll_handle, "NtGetNlsSectionPtr"));
+		if (fn_NtGetNlsSectionPtr_va == 0) { return false; }
+		const auto fn_RtlInitCodePageTable_va = reinterpret_cast<std::size_t>(::GetProcAddress(ntdll_handle, "RtlInitCodePageTable"));
+		if (fn_RtlInitCodePageTable_va == 0) { return false; }
 
-            const auto shellcode_RtlInitCodePageTable_ptr = reinterpret_cast<std::uint32_t*>(shell_code.data() + 13);
-            shellcode_RtlInitCodePageTable_ptr[0] = static_cast<const std::uint32_t>(fn_RtlInitCodePageTable_va);
-        }
+		// get shellcode
+		std::uint8_t shell_code_buffer[512];
+		const auto shell_code_bytes = isWin11 ? Utils::ShellCodeV2_x32(shell_code_buffer) : Utils::ShellCodeV1_x32(shell_code_buffer);
+		const std::span<std::uint8_t> shell_code{ shell_code_buffer, shell_code_bytes };
 
-        // write shellcode
-        {
-            // write shellcode to shell_code_mem
-            const auto shellcode_write_status = VA::Write(hProcess, shell_code_mem_va, shell_code.data(), shell_code.size());
-            if (shellcode_write_status == false) { return std::nullopt; }
+		// create va_helper
+		Utils::VAHelper va_helper{ hProcess };
 
-            // modify RtlInitNlsTables va protection properties
-            const auto old_protection = VA::SetProtect(hProcess, fn_RtlInitCodePageTable_va, 5, PAGE_EXECUTE_READWRITE);
-            if (old_protection == 0) { return std::nullopt; }
+		// alloc shellcode memory in target process
+		const auto shell_code_mem_va = va_helper.Alloc(1024);
+		if (shell_code_mem_va == 0) { return false; }
 
-            // write jmp instr at the begin of NtRtlInitNlsTables
-            const auto jmp_instr_write_status = VA::WriteAsmJmp(hProcess, fn_RtlInitCodePageTable_va, shell_code_mem_va);
-            if (jmp_instr_write_status == false) { return std::nullopt; }
+		// config shellcode
+		{
+			const auto info_strcut_ptr = reinterpret_cast<std::uint32_t*>(shell_code.data() + 7);
+			info_strcut_ptr[0] = static_cast<const std::uint32_t>(nCodePage);
+			info_strcut_ptr[1] = static_cast<const std::uint32_t>(fn_NtGetNlsSectionPtr_va);
+			info_strcut_ptr[2] = static_cast<const std::uint32_t>(fn_RtlInitCodePageTable_va);
+			info_strcut_ptr[3] = {};
+		}
 
-            // write jmp instr at the end of shell_code_mem that jmp back begin of NtRtlInitNlsTables
-            const auto jmp_back_instr_write_status = VA::WriteAsmJmp(hProcess, shell_code_mem_va + shell_code.size(), fn_RtlInitCodePageTable_va + 5);
-            if (jmp_back_instr_write_status == false) { return std::nullopt; }
+		// write shellcode
+		{
+			// write shellcode to shell_code_mem
+			const auto shellcode_write_status = va_helper.Write(shell_code_mem_va, shell_code);
+			if (shellcode_write_status == false) { return false; }
 
-            return old_protection;
-        }
-    }
-    }// namespace LEP::Utils
+			// modify RtlInitNlsTables va protection properties
+			const auto old_protection = va_helper.SetProtect(fn_RtlInitCodePageTable_va, 5, PAGE_EXECUTE_READWRITE);
+			if (old_protection == 0) { return false; }
+
+			// write jmp instr at the begin of NtRtlInitNlsTables
+			const auto jmp_instr_write_status = va_helper.WriteAsmJmp(fn_RtlInitCodePageTable_va, shell_code_mem_va);
+			if (jmp_instr_write_status == false) { return false; }
+
+			// write jmp instr at the end of shell_code_mem that jmp back begin of NtRtlInitNlsTables
+			const auto jmp_back_instr_write_status = va_helper.WriteAsmJmp(shell_code_mem_va + shell_code.size(), fn_RtlInitCodePageTable_va + 5);
+			if (jmp_back_instr_write_status == false) { return false; }
+
+			return Utils::NlsPatcher::SaveInfoViaEnv(fn_RtlInitCodePageTable_va, shell_code_mem_va, old_protection);
+		}
+	}
+
+	static auto CodePageTablePatch_x64(const HANDLE /* hProcess*/, const std::size_t /* nCodePage */, const bool /* isWin11 */) -> bool
+	{
+		return false;
+	}
+} // namespace LEP::Utils
 
 namespace LEP::Utils
 {
-    auto NlsPatcher::Install() -> bool
-    {
-        switch (m_eSysVer)
-        {
-        case SysVer::Nls_Windows8_x32:
-        case SysVer::Nls_Windows8_1_x32:
-        case SysVer::Nls_Windows10_x32:
-        {
-            const auto protection_opt = NlsPatch_V1_x32(m_hProcess, m_nCodePage);
-            if (!protection_opt.has_value()) { return false; }
-        }
-        break;
+	auto NlsPatcher::Install() const -> bool
+	{
+		const auto is_x64 = Utils::SysInfo::IsProcessx64(m_hProcess);
+		const auto is_win11 = (Utils::SysInfo::GetBuildNumber() >= 22000);
 
-        case SysVer::Nls_Windows11_x32:
-        {
-            const auto protection_opt = NlsPatch_V2_x32(m_hProcess, m_nCodePage);
-            if (!protection_opt.has_value()) { return false; }
-        }
-        }
+		if (is_x64)
+		{
+			return CodePageTablePatch_x64(m_hProcess, m_nCodePage, is_win11);
+		}
+		else
+		{
+			return CodePageTablePatch_x32(m_hProcess, m_nCodePage, is_win11);
+		}
+	}
 
-        return true;
-    }
-
-    auto NlsPatcher::SaveInfoViaEnv(const std::size_t nHookVA, const std::size_t nOldProtect) -> void
-    {
+	auto NlsPatcher::AfterWith() -> bool
+	{
 #ifdef _WIN64
-        LPCWSTR format = L"%ull";
+		LPCWSTR format = L"%ull";
 #else
-        LPCWSTR format = L"%ul";
+		LPCWSTR format = L"%ul";
+#endif // _WIN64
+		WCHAR buffer[64];
+		BOOL get_status{};
+
+		get_status = ::GetEnvironmentVariableW(L"LEP_NLS_PATCHER_HOOK_VA", buffer, 64);
+		if (!get_status) { return false; }
+		std::size_t hook_va{};
+		::swscanf_s(buffer, format, &hook_va);
+		if (!hook_va) { return false; }
+
+		::GetEnvironmentVariableW(L"LEP_NLS_PATCHER_SHELLCODE_VA", buffer, 64);
+		std::size_t shellcode_va{};
+		::swscanf_s(buffer, format, &shellcode_va);
+		if (!shellcode_va) { return false; }
+
+		::GetEnvironmentVariableW(L"LEP_NLS_PATCHER_PROTECTION", buffer, 64);
+		std::size_t old_protect{};
+		::swscanf_s(buffer, format, &old_protect);
+		if (!old_protect) { return false; }
+
+		VAHelper va_helper{ ::GetCurrentProcess() };
+
+		const auto free_status = va_helper.Free(shellcode_va);
+		if (!free_status) { return false; }
+
+		const auto set_protect_status = va_helper.SetProtect(hook_va, 5, old_protect);
+		if (!set_protect_status) { return false; }
+
+		return true;
+	}
+
+	auto NlsPatcher::SaveInfoViaEnv(const std::size_t nHookVA, const std::size_t nShellCodeVA, const std::size_t nOldProtect) -> bool
+	{
+#ifdef _WIN64
+		LPCWSTR format = L"%ull";
+#else
+		LPCWSTR format = L"%ul";
 #endif // _WIN64
 
-        WCHAR buffer[64];
-        ::wsprintfW(buffer, format, nHookVA);
-        ::SetEnvironmentVariableW(L"LEP_NLS_PATCHER_HOOK_VA", buffer);
+		WCHAR buffer[64];
+		BOOL set_status{};
+		int format_status{};
 
-        ::wsprintfW(buffer, format, nOldProtect);
-        ::SetEnvironmentVariableW(L"LEP_NLS_PATCHER_PROTECTION", buffer);
+		format_status = ::wsprintfW(buffer, format, nHookVA);
+		if (!format_status) { return false; }
+		set_status = ::SetEnvironmentVariableW(L"LEP_NLS_PATCHER_HOOK_VA", buffer);
+		if (!set_status) { return false; }
 
-    }
+		format_status = ::wsprintfW(buffer, format, nShellCodeVA);
+		if (!format_status) { return false; }
+		set_status = ::SetEnvironmentVariableW(L"LEP_NLS_PATCHER_SHELLCODE_VA", buffer);
+		if (!set_status) { return false; }
 
-    auto NlsPatcher::LoadInfoViaEnv() -> std::pair<std::size_t, std::size_t>
-    {
-#ifdef _WIN64
-        LPCWSTR format = L"%ull";
-#else
-        LPCWSTR format = L"%ul";
-#endif // _WIN64
-        WCHAR buffer[64];
+		format_status = ::wsprintfW(buffer, format, nOldProtect);
+		if (!format_status) { return false; }
+		set_status = ::SetEnvironmentVariableW(L"LEP_NLS_PATCHER_PROTECTION", buffer);
+		if (!set_status) { return false; }
 
-        ::GetEnvironmentVariableW(L"LEP_NLS_PATCHER_HOOK_VA", buffer, 64);
-        std::size_t hook_va{};
-        ::swscanf_s(buffer, format, &hook_va);
-
-        GetEnvironmentVariableW(L"LEP_NLS_PATCHER_PROTECTION", buffer, 64);
-        std::size_t old_protect{};
-        ::swscanf_s(buffer, format, &old_protect);
-
-        return std::pair{ hook_va, old_protect };
-    }
-
-    auto NlsPatcher::RestoreProtection() -> void
-    {
-        auto [hook_va, old_protect] = NlsPatcher::LoadInfoViaEnv();
-        VA::SetProtect(::GetCurrentProcess(), hook_va, 5, old_protect);
-    }
-
-    auto NlsPatcher::Install(const HANDLE hProcess, const SysVer eSysVer, const std::size_t nCodePage) -> bool
-    {
-        NlsPatcher patcher{ hProcess,eSysVer,nCodePage };
-        return patcher.Install();
-    }
-}// namespace LEP::Utils::VA
-
-
+		return true;
+	}
+} // namespace LEP::Utils

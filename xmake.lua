@@ -8,7 +8,7 @@ set_allowedplats("windows", "mingw")
 set_allowedarchs("windows|x86", "windows|x64", "mingw|x86_64", "mingw|i386")
 set_allowedmodes("debug", "release")
 
-set_languages("c++20")
+set_languages("c++23")
 
 set_warnings("allextra")
 add_rules("mode.debug", "mode.release")

@@ -28,7 +28,7 @@ auto wmain(int argc, wchar_t** argv) -> int
 
     if (!status) { return -2; }
 
-    LEP::Utils::NlsPatcher::Install(pi.hProcess, LEP::Utils::NlsPatcher::SysVer::Nls_Windows10_x32, 0x3A4);
+    LEP::Utils::NlsPatcher{ pi.hProcess, 0x3A4 }.Install();
 
     ::MessageBoxW(0, L"Click OK to resume", 0, 0);
 

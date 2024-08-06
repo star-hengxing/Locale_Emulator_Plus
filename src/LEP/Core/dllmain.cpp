@@ -1,11 +1,13 @@
 #include <Windows.h>
 #include <LEP/Utils/Hooker.h>
+#include <LEP/Utils/NlsPatcher.h>
 #include <LEP/Core/Win32uHook.h>
 
 
 static auto StartHook(HMODULE /* hDllBase */) -> void
 {
     LEP::Utils::Detour::AfterWith();
+    LEP::Utils::NlsPatcher::AfterWith();
     LEP::Core::Win32u::InstallHook();
 }
 
