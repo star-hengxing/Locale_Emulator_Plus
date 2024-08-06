@@ -22,7 +22,7 @@ namespace LEP::Utils
 		{
 			0x60,                                     // pushad
 			0x9C,                                     // pushfd
-			0xE8,0x10,0x00,0x00,0x00,                 // call lable_0
+			0xE8, 0x10,0x00,0x00,0x00,                // call lable_0
 
 			// Data
 			0x00,0x00,0x00,0x00,                      // info_struct.CodePage
@@ -33,43 +33,43 @@ namespace LEP::Utils
 			// lable_0: test info_struct.NlsMapVA
 			0x58,                                     // pop eax
 			0x31,0xDB,                                // xor ebx,ebx
-			0x8B,0x48,0x0C,							  // mov ecx,dword ptr ds:[eax+C]   // info_struct.NlsMapVA
-			0x39,0xCB,								  // cmp ebx,ecx
-			0x75,0x2F,								  // jne label_1
+			0x8B,0x48,0x0C,                           // mov ecx,dword ptr ds:[eax+C]   // info_struct.NlsMapVA
+			0x39,0xCB,                                // cmp ebx,ecx
+			0x75,0x2F,                                // jne label_1
 
-			0x50,									  // push eax                        // Save info_struct ptr
-			0x8B,0x18,								  // mov ebx,dword ptr ds:[eax]      // load info_struct.CodePage
+			0x50,                                     // push eax                        // Save info_struct ptr
+			0x8B,0x18,                                // mov ebx,dword ptr ds:[eax]      // load info_struct.CodePage
 
-			// load nls map table														 //
-			0x6A,0x00,								  // push 0							 //
-			0x6A,0x00,								  // push 0							 //
-			0x8D,0x0C,0x24,							  // lea ecx,dword ptr ss:[esp]		 //
-			0x8D,0x54,0x24,0x04,					  // lea edx,dword ptr ss:[esp+4]	 //
-			0x51,									  // push ecx						 // param_4: SectionSizePtr :
-			0x52,									  // push edx						 // param_3: SectionPtrPtr  :
-			0x6A,0x00,								  // push 0							 // param_2: Unknown        :
-			0x53,									  // push ebx						 // param_1: CodePage       :
-			0x6A,0x0B,								  // push B							 // param_0: NlsType        :
-			0xFF,0x50,0x04,							  // call dword ptr ds:[eax+4]       // call info_struct.NtGetNlsSectionPtr
-			0x5B,									  // pop ebx						 //
-			0x59,									  // pop ecx						 //
-			0x58,									  // pop eax						 // Restore info_struct ptr
+			// load nls map table
+			0x6A,0x00,                                // push 0
+			0x6A,0x00,                                // push 0
+			0x8D,0x0C,0x24,                           // lea ecx,dword ptr ss:[esp]
+			0x8D,0x54,0x24,0x04,                      // lea edx,dword ptr ss:[esp+4]
+			0x51,                                     // push ecx                        // param_4: SectionSizePtr :
+			0x52,                                     // push edx                        // param_3: SectionPtrPtr  :
+			0x6A,0x00,                                // push 0                          // param_2: Unknown        :
+			0x53,                                     // push ebx                        // param_1: CodePage       :
+			0x6A,0x0B,                                // push B                          // param_0: NlsType        :
+			0xFF,0x50,0x04,                           // call dword ptr ds:[eax+4]       // call info_struct.NtGetNlsSectionPtr
+			0x5B,                                     // pop ebx
+			0x59,                                     // pop ecx
+			0x58,                                     // pop eax                         // Restore info_struct ptr
 
 			// patch PEB
-			0x64,0x8B,0x35,0x30,0x00,0x00,0x00,		  // mov esi,dword ptr fs:[30]       // PEB
-			0x8D,0x56,0x58,							  // lea edx,dword ptr ds:[esi+58]   // &PEB.AnsiCodePageData
-			0x89,0x0A,								  // mov dword ptr ds:[edx],ecx      // PEB.AnsiCodePageData = nls_table_ptr
-			0x89,0x4A,0x04,						      // mov dword ptr ds:[edx+4],ecx    // PEB.OemCodePageData = nls_table_ptr
-			0x89,0x48,0x0C,							  // mov dword ptr ds:[eax+C],ecx    // info_struct.NlsMapVA = nls_table_ptr
-			0xEB,0x0D,								  // jmp label_2
+			0x64,0x8B,0x35, 0x30,0x00,0x00,0x00,      // mov esi,dword ptr fs:[30]       // PEB
+			0x8D,0x56,0x58,                           // lea edx,dword ptr ds:[esi+58]   // &PEB.AnsiCodePageData
+			0x89,0x0A,                                // mov dword ptr ds:[edx],ecx      // PEB.AnsiCodePageData = nls_table_ptr
+			0x89,0x4A,0x04,                           // mov dword ptr ds:[edx+4],ecx    // PEB.OemCodePageData = nls_table_ptr
+			0x89,0x48,0x0C,                           // mov dword ptr ds:[eax+C],ecx    // info_struct.NlsMapVA = nls_table_ptr
+			0xEB,0x0D,                                // jmp label_2
 
 			// label_1: restore RtlInitCodePageTable header
-			0x8B,0x58,0x08,							  // mov ebx,dword ptr ds:[eax+8]    // info_struct.RtlInitCodePageTable
-			0xC7,0x03,0x8B,0xFF,0x55,0x8B,			  // mov dword ptr ds:[ebx],8B55FF8B // copy { {mov edi, edi}, {push ebp}, {mov ebp, esp} }
-			0xC6,0x43,0x04,0xEC,					  // mov byte ptr ds:[ebx+4],EC      // 
+			0x8B,0x58,0x08,                           // mov ebx,dword ptr ds:[eax+8]    // info_struct.RtlInitCodePageTable
+			0xC7,0x03, 0x8B,0xFF,0x55,0x8B,           // mov dword ptr ds:[ebx],8B55FF8B // copy { {mov edi, edi}, {push ebp}, {mov ebp, esp} }
+			0xC6,0x43,0x04, 0xEC,                     // mov byte ptr ds:[ebx+4],EC
 
 			// label_2: modify RtlInitCodePageTable param0
-			0x89,0x4C,0x24,0x28,					  // mov dword ptr ss:[esp+28],ecx
+			0x89,0x4C,0x24,0x28,                      // mov dword ptr ss:[esp+28],ecx
 			0x9D,                                     // popfd
 			0x61,                                     // popad
 			0x8B, 0xFF,                               // mov edi, edi
@@ -96,7 +96,7 @@ namespace LEP::Utils
 		std::array<std::uint8_t, 110> shell_code{
 			0x60,                                     // pushad
 			0x9C,                                     // pushfd
-			0xE8,0x10,0x00,0x00,0x00,                 // call lable_0
+			0xE8, 0x10,0x00,0x00,0x00,                // call lable_0
 
 			// Data
 			0x00,0x00,0x00,0x00,                      // info_struct.CodePage
@@ -107,41 +107,41 @@ namespace LEP::Utils
 			// lable_0: test info_struct.NlsMapVA
 			0x58,                                     // pop eax
 			0x31,0xDB,                                // xor ebx,ebx
-			0x8B,0x48,0x0C,							  // mov ecx,dword ptr ds:[eax+C]   // info_struct.NlsMapVA
-			0x39,0xCB,								  // cmp ebx,ecx
-			0x75,0x35,								  // jne label_1
+			0x8B,0x48,0x0C,                           // mov ecx,dword ptr ds:[eax+C]   // info_struct.NlsMapVA
+			0x39,0xCB,                                // cmp ebx,ecx
+			0x75,0x35,                                // jne label_1
 
 			// patch PEB
-			0x50,									  // push eax                        // Save info_struct ptr
-			0x8B,0x18,								  // mov ebx,dword ptr ds:[eax]      // info_struct.CodePage
-			0x64,0x8B,0x15,0x30,0x00,0x00,0x00,		  // mov edx,dword ptr fs:[30]       // Get PEB
-			0x66,0x89,0x9A,0x28,0x02,0x00,0x00,		  // mov word ptr ds:[edx+228],bx    // PEB.ActiveCodePage
-			0x66,0x89,0x9A,0x2A,0x02,0x00,0x00,		  // mov word ptr ds:[edx+22A],bx    // PEB.OemCodePage
+			0x50,                                     // push eax                        // Save info_struct ptr
+			0x8B,0x18,                                // mov ebx,dword ptr ds:[eax]      // info_struct.CodePage
+			0x64,0x8B,0x15, 0x30,0x00,0x00,0x00,      // mov edx,dword ptr fs:[30]       // Get PEB
+			0x66,0x89,0x9A,0x28,0x02,0x00,0x00,       // mov word ptr ds:[edx+228],bx    // PEB.ActiveCodePage
+			0x66,0x89,0x9A,0x2A,0x02,0x00,0x00,       // mov word ptr ds:[edx+22A],bx    // PEB.OemCodePage
 
-			// load nls map table														 //
-			0x6A,0x00,								  // push 0							 //
-			0x6A,0x00,								  // push 0							 //
-			0x8D,0x0C,0x24,							  // lea ecx,dword ptr ss:[esp]		 //
-			0x8D,0x54,0x24,0x04,					  // lea edx,dword ptr ss:[esp+4]	 //
-			0x51,									  // push ecx						 // param_4: SectionSizePtr :
-			0x52,									  // push edx						 // param_3: SectionPtrPtr  :
-			0x6A,0x00,								  // push 0							 // param_2: Unknown        :
-			0x53,									  // push ebx						 // param_1: CodePage       :
-			0x6A,0x0B,								  // push B							 // param_0: NlsType        :
-			0xFF,0x50,0x04,							  // call dword ptr ds:[eax+4]       // call info_struct.NtGetNlsSectionPtr
-			0x5B,									  // pop ebx						 //
-			0x59,									  // pop ecx						 //
-			0x58,									  // pop eax						 // Restore info_struct ptr
-			0x89,0x48,0x0C,							  // mov dword ptr ds:[eax+C],ecx	 //
-			0xEB,0x0D,								  // jmp label_2					 //
+			// load nls map table
+			0x6A,0x00,                                // push 0
+			0x6A,0x00,                                // push 0
+			0x8D,0x0C,0x24,                           // lea ecx,dword ptr ss:[esp]
+			0x8D,0x54,0x24,0x04,                      // lea edx,dword ptr ss:[esp+4]
+			0x51,                                     // push ecx                        // param_4: SectionSizePtr :
+			0x52,                                     // push edx                        // param_3: SectionPtrPtr  :
+			0x6A,0x00,                                // push 0                          // param_2: Unknown        :
+			0x53,                                     // push ebx                        // param_1: CodePage       :
+			0x6A,0x0B,                                // push B                          // param_0: NlsType        :
+			0xFF,0x50,0x04,                           // call dword ptr ds:[eax+4]       // call info_struct.NtGetNlsSectionPtr
+			0x5B,                                     // pop ebx
+			0x59,                                     // pop ecx
+			0x58,                                     // pop eax                         // Restore info_struct ptr
+			0x89,0x48,0x0C,                           // mov dword ptr ds:[eax+C],ecx
+			0xEB,0x0D,                                // jmp label_2
 
-			// label_1: restore RtlInitCodePageTable header								 //
-			0x8B,0x58,0x08,							  // mov ebx,dword ptr ds:[eax+8]    // info_struct.RtlInitCodePageTable
-			0xC7,0x03,0x8B,0xFF,0x55,0x8B,			  // mov dword ptr ds:[ebx],8B55FF8B // copy { {mov edi, edi}, {push ebp}, {mov ebp, esp} }
-			0xC6,0x43,0x04,0xEC,					  // mov byte ptr ds:[ebx+4],EC      // 
+			// label_1: restore RtlInitCodePageTable header
+			0x8B,0x58,0x08,                           // mov ebx,dword ptr ds:[eax+8]    // info_struct.RtlInitCodePageTable
+			0xC7,0x03, 0x8B,0xFF,0x55,0x8B,           // mov dword ptr ds:[ebx],8B55FF8B // copy { {mov edi, edi}, {push ebp}, {mov ebp, esp} }
+			0xC6,0x43,0x04, 0xEC,                     // mov byte ptr ds:[ebx+4],EC
 
 			// label_2: modify RtlInitCodePageTable param0
-			0x89,0x4C,0x24,0x28,					  // mov dword ptr ss:[esp+28],ecx
+			0x89,0x4C,0x24,0x28,                      // mov dword ptr ss:[esp+28],ecx
 			0x9D,                                     // popfd
 			0x61,                                     // popad
 			0x8B, 0xFF,                               // mov edi, edi
