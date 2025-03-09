@@ -1,12 +1,14 @@
+#include <span>
+
 #include <windows.h>
 #include <detours.h>
 
-#include "table.hpp"
+#include "hook/table.hpp"
 #include "global.hpp"
 
 static void attach() noexcept
 {
-    for (auto& api : HOOK_LIST)
+    for (auto& api : std::span{HOOK_LIST, HOOK_LIST_SIZE})
     {
         ::DetourAttach(
             std::addressof(reinterpret_cast<PVOID&>(api.src)),
@@ -16,7 +18,7 @@ static void attach() noexcept
 
 static void detach() noexcept
 {
-    for (auto& api : HOOK_LIST)
+    for (auto& api : std::span{HOOK_LIST, HOOK_LIST_SIZE})
     {
         ::DetourDetach(
             std::addressof(reinterpret_cast<PVOID&>(api.src)),

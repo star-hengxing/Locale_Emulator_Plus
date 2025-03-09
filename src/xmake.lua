@@ -3,20 +3,21 @@ add_defines("WIN32_LEAN_AND_MEAN")
 
 add_packages("microsoft-detours")
 
-if is_plat("windows") and is_mode("release") then
-    add_packages("vc-ltl5")
-end
-
 target("locale_emulator_plus")
     set_kind("shared")
     -- https://github.com/microsoft/Detours/wiki/DetourFinishHelperProcess
     add_files("core/export.def")
+    add_files(
+        "core/*.cpp",
+        "core/hook/common.cpp",
+        "core/hook/table.cpp"
+    )
 
-    add_files("core/*.cpp")
-    add_headerfiles("core/*.hpp")
+    add_headerfiles("core/**.hpp")
     add_cxxflags("/wd4003", "/kernel", {tools = "cl"})
 
     if is_plat("mingw") then
+        -- libxxx -> xxx
         set_prefixname("")
         add_cxxflags("-fpermissive")
     end

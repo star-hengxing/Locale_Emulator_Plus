@@ -16,28 +16,27 @@
     #endif
 #endif
 
-#ifdef PROJECT_SET_SYMBOL
-    #if defined(_WIN32) || defined(__CYGWIN__)
-        #ifdef __GNUC__
-            #define PROJECT_EXPORT __attribute__(dllexport)
-            #define PROJECT_IMPORT __attribute__(dllimport)
-        #else
-            #define PROJECT_EXPORT __declspec(dllexport)
-            #define PROJECT_IMPORT __declspec(dllimport)
+#ifndef LIBRARY_API
+    #ifdef LIBRARY_STATIC
+        #define LIBRARY_API
+    #else
+        #if defined(_WIN32) || defined(__CYGWIN__)
+            #ifdef __GNUC__
+                #define LIBRARY_EXPORT __attribute__(dllexport)
+                #define LIBRARY_IMPORT __attribute__(dllimport)
+            #else
+                #define LIBRARY_EXPORT __declspec(dllexport)
+                #define LIBRARY_IMPORT __declspec(dllimport)
+            #endif
+        #elif defined(__GNUC__) || defined(__clang__)
+            #define LIBRARY_EXPORT __attribute__((visibility ("default")))
+            #define LIBRARY_IMPORT __attribute__((visibility ("default")))
         #endif
-    #elif defined(__GNUC__) || defined(__clang__)
-        #define PROJECT_EXPORT __attribute__((visibility ("default")))
-        #define PROJECT_IMPORT __attribute__((visibility ("default")))
-    #endif
-#else
-    #ifndef PROJECT_EXPORT
-        #define PROJECT_EXPORT
-    #endif
-    #ifndef PROJECT_IMPORT
-        #define PROJECT_IMPORT
-    #endif
-#endif
 
-#if !defined(PROJECT_DEBUG) && !defined(NDEBUG) && defined(DEBUG) && defined(_DEBUG)
-#define PROJECT_DEBUG
+        #ifdef LIBRARY_BUILDING
+            #define LIBRARY_API LIBRARY_EXPORT
+        #else
+            #define LIBRARY_API LIBRARY_IMPORT
+        #endif
+    #endif
 #endif

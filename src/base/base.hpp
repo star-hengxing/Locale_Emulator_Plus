@@ -7,7 +7,7 @@ NAMESPACE_BEGIN(global)
 
 inline constexpr auto is_debug
 {
-#ifdef LIBRARY_DEBUG
+#ifdef PROJECT_DEBUG
     true
 #else
     false

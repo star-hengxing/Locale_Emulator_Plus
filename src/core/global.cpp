@@ -51,12 +51,12 @@ static void get_global_info_from_pipe() noexcept
 
 void initialize() noexcept
 {
-#ifdef PROJECT_DEBUG
-    while (!::IsDebuggerPresent())
-    {
-        ::Sleep(100);
-    }
-#endif
+// #ifdef PROJECT_DEBUG
+//     while (!::IsDebuggerPresent())
+//     {
+//         ::Sleep(100);
+//     }
+// #endif
 
     // get_global_info_from_pipe();
     global_info.code_page = ::GetACP();
