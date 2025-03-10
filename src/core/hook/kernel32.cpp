@@ -24,31 +24,34 @@ int WINAPI MessageBoxW(
     return original(hWnd, shiftjis2gbk(lpText), shiftjis2gbk(lpCaption), uType);
 }
 
-ATOM WINAPI RegisterClassExA(_In_ CONST WNDCLASSEXA* src)
+HWND WINAPI CreateWindowExW(
+    _In_ DWORD dwExStyle,
+    _In_opt_ LPCWSTR lpClassName,
+    _In_opt_ LPCWSTR lpWindowName,
+    _In_ DWORD dwStyle,
+    _In_ int X,
+    _In_ int Y,
+    _In_ int nWidth,
+    _In_ int nHeight,
+    _In_opt_ HWND hWndParent,
+    _In_opt_ HMENU hMenu,
+    _In_opt_ HINSTANCE hInstance,
+    _In_opt_ LPVOID lpParam)
 {
-    auto const original = get_original_function_ptr(RegisterClassExA);
-    return original(src);
-    // auto const original = get_original_function_ptr(RegisterClassExW);
-    // auto const class_name = char2wide(src->lpszClassName);
-    // auto const menu_name = char2wide(src->lpszMenuName);
-
-    // auto dst = *reinterpret_cast<const WNDCLASSEXW*>(src);
-    // dst.lpszClassName = class_name.ptr;
-    // dst.lpszMenuName = menu_name.ptr;
-    // return original(&dst);
-}
-
-ATOM WINAPI RegisterClassExW(_In_ CONST WNDCLASSEXW* src)
-{
-    auto const original = get_original_function_ptr(RegisterClassExW);
-    return original(src);
-    // auto const class_name = shiftjis2gbk(src->lpszClassName);
-    // auto const menu_name = shiftjis2gbk(src->lpszMenuName);
-
-    // WNDCLASSEXW dst = *src;
-    // dst.lpszClassName = class_name.ptr;
-    // dst.lpszMenuName = menu_name.ptr;
-    // return original(&dst);
+    return get_original_function_ptr(CreateWindowExW)(
+        dwExStyle,
+        lpClassName,
+        shiftjis2gbk(lpWindowName),
+        dwStyle,
+        X,
+        Y,
+        nWidth,
+        nHeight,
+        hWndParent,
+        hMenu,
+        hInstance,
+        lpParam
+    );
 }
 
 DWORD WINAPI GetModuleFileNameA(

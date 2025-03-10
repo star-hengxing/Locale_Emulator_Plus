@@ -12,8 +12,7 @@ enum class hook_function_help
     SetWindowTextA,
     SetWindowTextW,
     CreateFileW,
-    RegisterClassExA,
-    RegisterClassExW,
+    CreateWindowExW,
     GetModuleFileNameA,
     MAX,
 };

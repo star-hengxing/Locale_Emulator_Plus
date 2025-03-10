@@ -14,8 +14,7 @@ hook_function HOOK_LIST[]
     HOOK_LIST_HELP(SetWindowTextA),
     HOOK_LIST_HELP(SetWindowTextW),
     HOOK_LIST_HELP(CreateFileW),
-    HOOK_LIST_HELP(RegisterClassExA),
-    HOOK_LIST_HELP(RegisterClassExW),
+    HOOK_LIST_HELP(CreateWindowExW),
     HOOK_LIST_HELP(GetModuleFileNameA),
 };
 
