@@ -8,12 +8,9 @@
 enum class hook_function_help
 {
     MessageBoxA = 0,
-    MessageBoxW,
     SetWindowTextA,
-    SetWindowTextW,
-    CreateFileW,
-    CreateWindowExW,
-    GetModuleFileNameA,
+    GetACP,
+    GetOEMCP,
     MAX,
 };
 

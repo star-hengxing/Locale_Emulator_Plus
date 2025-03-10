@@ -60,6 +60,6 @@ void initialize() noexcept
 #endif
 
     // get_global_info_from_pipe();
-    global_info.code_page = ::GetACP();
+    global_info.code_page = (UINT)Encoding::shift_jis;
     global_info.heap = ::original_GetProcessHeap();
 }

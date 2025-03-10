@@ -10,12 +10,9 @@
 hook_function HOOK_LIST[]
 {
     HOOK_LIST_HELP(MessageBoxA),
-    HOOK_LIST_HELP(MessageBoxW),
     HOOK_LIST_HELP(SetWindowTextA),
-    HOOK_LIST_HELP(SetWindowTextW),
-    HOOK_LIST_HELP(CreateFileW),
-    HOOK_LIST_HELP(CreateWindowExW),
-    HOOK_LIST_HELP(GetModuleFileNameA),
+    HOOK_LIST_HELP(GetACP),
+    HOOK_LIST_HELP(GetOEMCP),
 };
 
 const usize HOOK_LIST_SIZE = std::size(HOOK_LIST);
