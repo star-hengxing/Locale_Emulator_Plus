@@ -1,7 +1,7 @@
 add_includedirs(os.scriptdir())
 add_defines("WIN32_LEAN_AND_MEAN")
 
-add_packages("microsoft-detours")
+add_packages("microsoft-detours", "cpp-ipc")
 
 target("locale_emulator_plus")
     set_kind("shared")
