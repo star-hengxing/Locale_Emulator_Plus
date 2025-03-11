@@ -5,8 +5,6 @@ add_packages("microsoft-detours", "cpp-ipc")
 
 target("locale_emulator_plus")
     set_kind("shared")
-    -- https://github.com/microsoft/Detours/wiki/DetourFinishHelperProcess
-    add_files("core/export.def")
     add_files(
         "core/*.cpp",
         "core/hook/common.cpp",
@@ -15,14 +13,21 @@ target("locale_emulator_plus")
 
     add_headerfiles("core/**.hpp")
     add_cxxflags("/wd4003", "/kernel", {tools = "cl"})
+    -- https://github.com/microsoft/Detours/wiki/DetourFinishHelperProcess
+    add_shflags("/export:DetourFinishHelperProcess,@1", {tools = "link"})
 
     if is_plat("mingw") then
         -- libxxx -> xxx
         set_prefixname("")
         add_cxxflags("-fpermissive")
+        add_files("core/export.def")
     end
 
     add_syslinks("user32")
+
+    if has_config("test") then
+        add_options("test")
+    end
 
     on_load(function (target)
         local arch

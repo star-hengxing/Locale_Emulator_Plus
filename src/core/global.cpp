@@ -51,7 +51,7 @@ static void get_global_info_from_pipe() noexcept
 
 void initialize() noexcept
 {
-#ifdef PROJECT_DEBUG
+#if defined(PROJECT_DEBUG) && !defined(PROJECT_TEST)
     // while (!::IsDebuggerPresent())
     // {
     //     ::Sleep(100);

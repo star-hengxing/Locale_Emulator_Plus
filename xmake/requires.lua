@@ -12,6 +12,6 @@ end
 
 -- test deps
 
--- if has_config("test") then
---     add_requires("boost_ut")
--- end
+if has_config("test") then
+    add_requires("boost_ut")
+end

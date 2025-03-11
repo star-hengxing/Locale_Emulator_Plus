@@ -8,7 +8,7 @@ set_allowedplats("windows", "mingw")
 set_allowedarchs("windows|x86", "windows|x64", "mingw|x86_64", "mingw|i386")
 set_allowedmodes("debug", "release", "releasedbg")
 
-includes("src", "xmake")
+includes("src", "xmake", "test")
 
 -- fixed config
 set_languages("c++20")
