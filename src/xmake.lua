@@ -1,7 +1,13 @@
 add_includedirs(os.scriptdir())
 add_defines("WIN32_LEAN_AND_MEAN")
 
-add_packages("microsoft-detours", "cpp-ipc")
+add_packages("microsoft-detours")
+if is_mode("debug", "releasedbg") then
+    add_packages("cpp-ipc")
+end
+if has_config("release") then
+    add_packages("vc-ltl5")
+end
 
 target("locale_emulator_plus")
     set_kind("shared")
@@ -11,7 +17,7 @@ target("locale_emulator_plus")
         "core/hook/table.cpp"
     )
 
-    add_headerfiles("core/**.hpp")
+    add_headerfiles("core/**.hpp", {install = false})
     add_cxxflags("/wd4003", "/kernel", {tools = "cl"})
     -- https://github.com/microsoft/Detours/wiki/DetourFinishHelperProcess
     add_shflags("/export:DetourFinishHelperProcess,@1", {tools = "link"})
@@ -41,7 +47,6 @@ target("locale_emulator_plus")
     end)
 
 target("locale_emulator_plus_tool")
-    set_default(false)
     set_kind("binary")
     add_files("tool/*.cpp")
     add_syslinks("shlwapi")

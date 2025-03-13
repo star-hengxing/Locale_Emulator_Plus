@@ -10,6 +10,10 @@ end
 --     add_requires("minhook")
 -- end
 
+if has_config("release") then
+    add_requires("vc-ltl5")
+end
+
 -- test deps
 
 if has_config("test") then

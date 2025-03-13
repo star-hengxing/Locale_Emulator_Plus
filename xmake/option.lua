@@ -9,6 +9,11 @@ option("test")
     set_description("Enable test")
     add_defines("PROJECT_TEST")
 
+option("release")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Use release config")
+
 -- option("minhook")
 --     set_default(false)
 --     set_showmenu(true)

@@ -36,4 +36,10 @@ if has_config("dev") then
     if is_plat("windows") then
         set_runtimes("MD")
     end
+elseif has_config("release") then
+    set_policy("build.optimization.lto", true)
+
+    if is_plat("windows") then
+        set_runtimes("MT")
+    end
 end
