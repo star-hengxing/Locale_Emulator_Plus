@@ -49,6 +49,6 @@ target("locale_emulator_plus")
 target("locale_emulator_plus_tool")
     set_kind("binary")
     add_files("tool/*.cpp")
-    add_syslinks("shlwapi")
+    add_syslinks("shlwapi", "advapi32")
 
     add_deps("locale_emulator_plus", {inherit = false})
