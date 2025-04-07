@@ -3,6 +3,13 @@
 - Support 64-bit.
 - For visual novel.
 
+# Usage
+
+Register to the right-click context menu. (unsupported windows 11)
+```console
+$ locale_emulator_plus_tool install
+```
+
 # Build
 
 ## Prerequisites
