@@ -6,9 +6,6 @@
 #include <sddl.h>
 
 #include <detours.h>
-#ifdef PROJECT_DEBUG
-#include <libipc/ipc.h>
-#endif
 
 #include <base/basic_type.hpp>
 
@@ -213,17 +210,4 @@ int main(int argc, char** argv)
     {
         return -3;
     }
-
-#ifdef PROJECT_DEBUG
-    ipc::route cc{"my-ipc-route", ipc::receiver};
-    while (true)
-    {
-        auto buf = cc.recv();
-        auto str = static_cast<char*>(buf.data());
-        if (str == nullptr || str[0] == '\0')
-            continue;
-
-        std::printf("%s\n", str);
-    }
-#endif
 }

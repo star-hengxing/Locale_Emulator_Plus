@@ -3,7 +3,7 @@ add_defines("WIN32_LEAN_AND_MEAN")
 
 add_packages("microsoft-detours")
 if is_mode("debug", "releasedbg") then
-    add_packages("cpp-ipc")
+    add_packages("spdlog")
 end
 if has_config("release") then
     add_packages("vc-ltl5")
@@ -18,7 +18,10 @@ target("locale_emulator_plus")
     )
 
     add_headerfiles("core/**.hpp", {install = false})
-    add_cxxflags("/wd4003", "/kernel", {tools = "cl"})
+    add_cxxflags("cl::/wd4003")
+    if is_mode("release") then
+        add_cxxflags("cl::/kernel")
+    end
     -- https://github.com/microsoft/Detours/wiki/DetourFinishHelperProcess
     add_shflags("/export:DetourFinishHelperProcess,@1", {tools = "link"})
 

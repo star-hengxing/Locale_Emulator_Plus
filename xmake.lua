@@ -30,6 +30,7 @@ set_encodings("utf-8")
 if has_config("dev") then
     set_policy("compatibility.version", "3.0")
     set_policy("build.ccache", true)
+    add_rules("plugin.compile_commands.autoupdate", {lsp = "clangd", outputdir = "build"})
 
     set_warnings("all")
 

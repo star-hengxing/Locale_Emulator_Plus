@@ -1,3 +1,8 @@
+#if defined(PROJECT_DEBUG) && !defined(PROJECT_TEST)
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/wincolor_sink.h>
+#endif
+
 #include <base/macro.hpp>
 #include "global.hpp"
 
@@ -55,8 +60,9 @@ void initialize() noexcept
     // while (!::IsDebuggerPresent())
     // {
     //     ::Sleep(100);
-    // }
-    ipc_client.wait_for_recv(1);
+    ::AllocConsole();
+    auto color_sink = std::make_shared<spdlog::sinks::wincolor_stdout_sink_mt>();
+    spdlog::set_default_logger(std::make_shared<spdlog::logger>("hook", std::move(color_sink)));
 #endif
 
     // get_global_info_from_pipe();

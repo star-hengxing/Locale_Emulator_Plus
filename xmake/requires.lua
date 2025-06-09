@@ -3,7 +3,7 @@
 add_requires("microsoft-detours")
 
 if is_mode("debug", "releasedbg") then
-    add_requires("cpp-ipc f3bf137668ccdcb2a0398124d737426aa6fa9d30") -- 2025.03.08
+    add_requires("spdlog[shared=y,header_only=n,fmt_external,wchar,wchar_filenames,wchar_console]")
 end
 
 -- if has_config("minhook") then
