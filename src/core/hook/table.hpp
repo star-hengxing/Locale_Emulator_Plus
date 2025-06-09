@@ -11,6 +11,7 @@ enum class hook_function_help
     SetWindowTextA,
     GetACP,
     GetOEMCP,
+    InsertMenuItemA,
     MAX,
 };
 

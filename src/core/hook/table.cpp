@@ -13,6 +13,7 @@ hook_function HOOK_LIST[]
     HOOK_LIST_HELP(SetWindowTextA),
     HOOK_LIST_HELP(GetACP),
     HOOK_LIST_HELP(GetOEMCP),
+    HOOK_LIST_HELP(InsertMenuItemA),
 };
 
 const usize HOOK_LIST_SIZE = std::size(HOOK_LIST);
